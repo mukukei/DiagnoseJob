@@ -153,3 +153,6 @@ app.get('/debug-db', async (req, res) => {
     res.status(500).json({ error: 'Failed to debug' });
   }
 });
+
+// フロント表示用
+app.use(express.static(__dirname));
