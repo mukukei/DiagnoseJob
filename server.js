@@ -156,3 +156,66 @@ app.get('/debug-db', async (req, res) => {
 
 // フロント表示用
 app.use(express.static(__dirname));
+
+const bcrypt = require('bcrypt');
+
+// =======================
+// ユーザー登録 POST
+// =======================
+app.post('/register', async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    // パスワードをハッシュ化
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      'INSERT INTO users (username, password) VALUES ($1, $2)',
+      [username, hashedPassword]
+    );
+
+    res.json({ message: 'User registered!' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to register user' });
+  }
+});
+
+const bcrypt = require('bcrypt');
+
+// =======================
+// ログイン POST
+// =======================
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    // ユーザーをDBから探す
+    const result = await pool.query(
+      'SELECT * FROM users WHERE username = $1',
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    const user = result.rows[0];
+
+    // パスワード照合
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid password' });
+    }
+
+    // ここでセッション or JWTを発行するのが本来
+    // 今はシンプルにメッセージだけ返す
+    res.json({ message: 'Login successful', user_id: user.id });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to login' });
+  }
+});
+
